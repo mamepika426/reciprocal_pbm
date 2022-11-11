@@ -1,0 +1,23 @@
+# 男女の数を2000人に設定
+NUM_MALES = 400
+NUM_FEMALES = 500
+
+# クラスター数設定
+NUM_CLUSTERS = 10
+
+# slate_size(1シートに表示する人数), 検索総回数設定
+S = 10
+NUM_SHEETS = 1000
+
+# ポジションバイアス強度設定
+POW_SEND_TRUE = 1
+POW_REPLY_TRUE = 1
+POW_SEND_USED = 1
+POW_REPLY_USED = 1
+
+# ニューラルネットに関するパラメータ設定
+TRAIN_BATCH_SIZE = 32
+TEST_BATCH_SIZE = 64
+HIDDEN_LAYER_SIZES = (10, 10)
+LEARNING_RATE = 0.0001
+N_EPOCHS = 100

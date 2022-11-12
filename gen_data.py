@@ -7,8 +7,7 @@ import pandas as pd
 from typing import List, Tuple
 from scipy.stats import bernoulli
 
-from consts import (DATA_DIR, FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS,
-                   POW_SEND_TRUE, POW_REPLY_TRUE, POW_SEND_USED, POW_REPLY_USED)
+from consts import DATA_DIR, FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS, POW_SEND, POW_REPLY
 
 
 def gen_users(num_users: int, num_clusters: int) -> Tuple[np.ndarray, np.ndarray, list]:
@@ -64,8 +63,8 @@ def gen_relevances(profiles: np.ndarray, preferences: np.ndarray) -> np.ndarray:
     return np.array(relevances).reshape(len(preferences), len(profiles))
 
 
-def gen_a_sheet(sender: int, receivers: np.ndarray, messaged_by: list, rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray,
-                pow_send_true: float, pow_reply_true: float, pow_send_used: float, pow_reply_used: float) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+def gen_a_sheet(sender: int, receivers: np.ndarray, messaged_by: list
+                , rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray) -> Tuple[pd.DataFrame, list]:
     """
     1検索分のシートを作成する関数
     @param sender: このシートの検索者
@@ -73,13 +72,8 @@ def gen_a_sheet(sender: int, receivers: np.ndarray, messaged_by: list, rel_sende
     @param messaged_by: 各受信者が、すでにメッセージを受け取った相手を格納している配列 [(メッセージ送信先の性別のユーザ数, *)]
     @param rel_sender2receiver: メッセージ送信源の性別から送信先の性別への嗜好度合いが格納された配列
     @param rel_receiver2sender: メッセージ送信先の性別から送信源の性別への嗜好度合いが格納された配列
-    @param: pow_send_true: メッセージ送信におけるポジションバイアス強度
-    @param: pow_reply_true: メッセージ返信におけるポジションバイアス強度    
-    @param: pow_send_used: メッセージ送信におけるポジションバイアス強度の推定値
-    @param: pow_reply_used: メッセージ返信におけるポジションバイアス強度の推定値
     @return sheet: 1検索についての情報をdfにしたもの
-    @return theta_send_used: 送信時の傾向スコア(1検索分)
-    @return theta_reply_used: 返信時の傾向スコア(1検索分)
+    @return messaged_by: messaged_byに今回の検索結果を反映したもの [(メッセージ送信先の性別のユーザ数, *)]
     """
     # 送信者, 受信者カラム
     sender_values = [sender] * len(receivers)
@@ -103,21 +97,18 @@ def gen_a_sheet(sender: int, receivers: np.ndarray, messaged_by: list, rel_sende
     sheet = pd.DataFrame(sheet_dict)
 
     # 送信有無カラム
-    sheet['送信有無'] = bernoulli.rvs( sheet['gamma_sender'] * ((0.9/sheet['受信者位置'])**pow_send_true) )
-    sheet['返信有無'] = bernoulli.rvs( sheet['gamma_receiver'] * ((0.9/sheet['送信者位置'])**pow_reply_true) ) * sheet['送信有無']
-    # 傾向スコア計算
-    theta_send_used = ( (0.9/sheet['受信者位置']) ** pow_send_used ).values
-    theta_reply_used = ( (0.9/sheet['送信者位置']) ** pow_reply_used ).values
+    sheet['送信有無'] = bernoulli.rvs( sheet['gamma_sender'] * ((0.9/sheet['受信者位置']) ** POW_SEND) )
+    sheet['返信有無'] = bernoulli.rvs( sheet['gamma_receiver'] * ((0.9/sheet['送信者位置']) ** POW_REPLY) ) * sheet['送信有無']
 
     # 完成したシートを確認して、メッセージ送信があればmessaged_byを更新しておく
     for item in sheet[sheet['送信有無']==1].itertuples():
         messaged_by[item.受信者].append(item.送信者)
         
-    return sheet, messaged_by, theta_send_used, theta_reply_used
+    return sheet, messaged_by
 
 
-def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_search: int, rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray,
-                pow_send_true: float, pow_reply_true: float, pow_send_used: float, pow_reply_used: float) -> Tuple[list, list, list]:
+def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_search: int
+                , rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray,) -> list:
     """
     ログデータを作成する関数
     @param profiles: メッセージ送信先となる性別すべてのユーザのprofile [(ユーザ数, 100)]
@@ -126,13 +117,7 @@ def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_searc
     @param num_search: 検索総回数
     @param rel_sender2receiver: メッセージ送信源の性別から送信先の性別への嗜好度合いが格納された配列
     @param rel_receiver2sender: メッセージ送信先の性別から送信源の性別への嗜好度合いが格納された配列
-    @param: pow_send_true: メッセージ送信における真のポジションバイアス強度
-    @param: pow_reply_true: メッセージ返信における真のポジションバイアス強度
-    @param: pow_send_used: メッセージ送信におけるポジションバイアス強度の推定値
-    @param: pow_reply_used: メッセージ返信におけるポジションバイアス強度の推定値
     @return logdata: 1検索についての情報をdfにしたものをnum_search枚もつリスト
-    @return theta_send_used_list: 送信時の傾向スコア(推定時に使用)
-    @return theta_reply_used_list: 返信時の傾向スコア(推定時に使用)
     """
     # 送信者ごとに、まだメッセージを送っていない相手を格納するリスト
     candidates = []
@@ -157,17 +142,12 @@ def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_searc
     
     # ログデータ生成
     logdata = []
-    theta_send_used_list = []
-    theta_reply_used_list = []
     for n in range(num_search):
-        sheet, messaged_by, theta_send_used, theta_reply_used = gen_a_sheet(senders_list[n], receivers_list[n], messaged_by, 
-                                                                            rel_sender2receiver, rel_receiver2sender,
-                                                                            pow_send_true, pow_reply_true, pow_send_used, pow_reply_true)
+        sheet, messaged_by = gen_a_sheet(senders_list[n], receivers_list[n], messaged_by
+                                         , rel_sender2receiver, rel_receiver2sender)
         logdata.append(sheet)
-        theta_send_used_list.append(theta_send_used)
-        theta_reply_used_list.append(theta_reply_used)
 
-    return logdata, theta_send_used_list, theta_reply_used_list
+    return logdata
 
 
 if __name__ == "__main__":
@@ -184,9 +164,7 @@ if __name__ == "__main__":
     rel_male2female = gen_relevances(female_profiles, male_preferences)
     rel_female2male = gen_relevances(male_profiles, female_preferences)
 
-    logdata, theta_send_used_list, theta_reply_used_list = gen_logdata(female_profiles, male_preferences, S, NUM_SHEETS
-                                                                       , rel_male2female, rel_female2male
-                                                                       , POW_SEND_TRUE, POW_REPLY_TRUE, POW_SEND_USED, POW_REPLY_USED)
+    logdata = gen_logdata(female_profiles, male_preferences, S, NUM_SHEETS, rel_male2female, rel_female2male)
 
     # データ保存
     for n in range(len(logdata)):
@@ -195,5 +173,3 @@ if __name__ == "__main__":
 
     np.save(os.path.join(DATA_DIR, 'male_profiles'), male_profiles)
     np.save(os.path.join(DATA_DIR, 'female_profiles'), female_profiles)
-    np.save(os.path.join(DATA_DIR, 'theta_send_used_list'), theta_send_used_list)
-    np.save(os.path.join(DATA_DIR, 'theta_reply_used_list'), theta_reply_used_list)

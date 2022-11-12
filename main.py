@@ -22,12 +22,10 @@ for n in range(NUM_SHEETS):
 
 male_profiles = np.load(os.path.join(DATA_DIR, 'male_profiles.npy'))
 female_profiles = np.load(os.path.join(DATA_DIR, 'female_profiles.npy'))
-theta_send_used_list = np.load(os.path.join(DATA_DIR, 'theta_send_used_list.npy'))
-theta_reply_used_list = np.load(os.path.join(DATA_DIR, 'theta_reply_used_list.npy'))
 
 # 後で絶対シャッフル
-train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S, theta_send_used_list[:NUM_TRAIN_SHEETS], theta_reply_used_list[:NUM_TRAIN_SHEETS])
-test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S, theta_send_used_list[NUM_TRAIN_SHEETS:], theta_reply_used_list[NUM_TRAIN_SHEETS:])
+train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S)
+test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S)
 
 
 torch.manual_seed(12345)

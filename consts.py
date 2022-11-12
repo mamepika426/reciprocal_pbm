@@ -18,10 +18,8 @@ NUM_SHEETS = 1000
 NUM_TRAIN_SHEETS = 800
 
 # ポジションバイアス強度設定
-POW_SEND_TRUE = 1
-POW_REPLY_TRUE = 1
-POW_SEND_USED = 1
-POW_REPLY_USED = 1
+POW_SEND = 1
+POW_REPLY = 1
 
 # ニューラルネットに関するパラメータ設定
 TRAIN_BATCH_SIZE = 32
@@ -29,3 +27,6 @@ TEST_BATCH_SIZE = 64
 HIDDEN_LAYER_SIZES = (10, 10)
 LEARNING_RATE = 0.0001
 N_EPOCHS = 100
+
+# 補正値に真の値を用いるか推定されたバイアスを用いるかどうか
+USE_TRUE_PB = True

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 import torch
@@ -5,7 +7,8 @@ import matplotlib.pyplot as plt
 
 from torch.optim import Adam
 
-from consts import NUM_SHEETS, S, TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS
+from consts import (DATA_DIR, FIG_DIR, NUM_SHEETS, NUM_TRAIN_SHEETS, S,
+                    TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS)
 from model import MLPScoreFunc
 from train import train_ranker
 from dataset import MyDataset
@@ -13,17 +16,18 @@ from dataset import MyDataset
 # 生成されたデータをロード
 logdata = []
 for n in range(NUM_SHEETS):
-    df = pd.read_csv('data/sheet{0}.csv'.format(n), header=0)
+    csv_file_path = os.path.join(DATA_DIR, 'sheet{0}.csv'.format(n))
+    df = pd.read_csv(csv_file_path, header=0)
     logdata.append(df)
 
-male_profiles = np.load('data/male_profiles.npy')
-female_profiles = np.load('data/female_profiles.npy')
-theta_send_used_list = np.load('data/theta_send_used_list.npy')
-theta_reply_used_list = np.load('data/theta_reply_used_list.npy')
+male_profiles = np.load(os.path.join(DATA_DIR, 'male_profiles.npy'))
+female_profiles = np.load(os.path.join(DATA_DIR, 'female_profiles.npy'))
+theta_send_used_list = np.load(os.path.join(DATA_DIR, 'theta_send_used_list.npy'))
+theta_reply_used_list = np.load(os.path.join(DATA_DIR, 'theta_reply_used_list.npy'))
 
 # 後で絶対シャッフル
-train = MyDataset(logdata[:800], male_profiles, female_profiles, S, theta_send_used_list[:800], theta_reply_used_list[:800])
-test = MyDataset(logdata[800:], male_profiles, female_profiles, S, theta_send_used_list[800:], theta_reply_used_list[800:])
+train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S, theta_send_used_list[:NUM_TRAIN_SHEETS], theta_reply_used_list[:NUM_TRAIN_SHEETS])
+test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S, theta_send_used_list[NUM_TRAIN_SHEETS:], theta_reply_used_list[NUM_TRAIN_SHEETS:])
 
 
 torch.manual_seed(12345)
@@ -89,4 +93,4 @@ plt.xlabel("Number of Epochs", fontdict=dict(size=20))
 plt.ylabel("Test nDCG@10", fontdict=dict(size=20))
 plt.tight_layout()
 plt.legend(loc="best", fontsize=20)
-plt.savefig('fig/ndcg.pdf')
+plt.savefig(os.path.join(FIG_DIR, "ndcg.pdf"))

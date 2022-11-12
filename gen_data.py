@@ -1,3 +1,4 @@
+import os
 import random
 
 import numpy as np
@@ -6,7 +7,7 @@ import pandas as pd
 from typing import List, Tuple
 from scipy.stats import bernoulli
 
-from consts import (NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS,
+from consts import (DATA_DIR, FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS,
                    POW_SEND_TRUE, POW_REPLY_TRUE, POW_SEND_USED, POW_REPLY_USED)
 
 
@@ -169,8 +170,14 @@ def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_searc
     return logdata, theta_send_used_list, theta_reply_used_list
 
 
-
 if __name__ == "__main__":
+    # data, figディレクトリが存在しなければ作成
+    if not os.path.exists(DATA_DIR):
+        os.mkdir(DATA_DIR)
+
+    if not os.path.exists(FIG_DIR):
+        os.mkdir(FIG_DIR)
+
     # profile, preference, 嗜好度合い, ログデータ作成
     male_profiles, male_preferences, male_cluster_list = gen_users(NUM_MALES, NUM_CLUSTERS)
     female_profiles, female_preferences, female_cluster_list = gen_users(NUM_FEMALES, NUM_CLUSTERS)
@@ -183,9 +190,10 @@ if __name__ == "__main__":
 
     # データ保存
     for n in range(len(logdata)):
-        logdata[n].to_csv('data/sheet{0}.csv'.format(n), index=False)
+        csv_file_path = os.path.join(DATA_DIR, 'sheet{0}.csv'.format(n))
+        logdata[n].to_csv(csv_file_path, index=False)
 
-    np.save('data/male_profiles', male_profiles)
-    np.save('data/female_profiles', female_profiles)
-    np.save('data/theta_send_used_list', theta_send_used_list)
-    np.save('data/theta_reply_used_list', theta_reply_used_list)
+    np.save(os.path.join(DATA_DIR, 'male_profiles'), male_profiles)
+    np.save(os.path.join(DATA_DIR, 'female_profiles'), female_profiles)
+    np.save(os.path.join(DATA_DIR, 'theta_send_used_list'), theta_send_used_list)
+    np.save(os.path.join(DATA_DIR, 'theta_reply_used_list'), theta_reply_used_list)

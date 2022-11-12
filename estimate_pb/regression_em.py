@@ -7,6 +7,8 @@ from typing import List, Tuple
 from scipy.stats import bernoulli
 from sklearn.ensemble import GradientBoostingClassifier
 
+sys.path.append('../') # constsをインポートするために必要
+from consts import MIN_SAMPLES_FOR_EST, EXCEPTIONAL_PB_VALUE
 
 # regressionEM_send内部で用いる関数を定義
 def np_log(x: np.ndarray) -> np.ndarray:
@@ -271,16 +273,18 @@ def update_theta_reply(logdata_extracted: list, P_O: np.ndarray, max_sender_posi
     @param max_sender_position: 送信者位置の最大値
     @return theta_est: 更新後の推定された返信時のポジションバイアス [(max_sender_position + 1)]
     """
-    theta_est = np.zeros(max_sender_position+1)
+    numerator = np.zeros(max_sender_position+1)
     # `送信者位置`カラムの値ごとにログデータ中に現れた行数をカウント
     cnt_array = np.zeros(max_sender_position+1)
     cnt_array[0] = 1 # 0割り防止
     for n in range(len(logdata_extracted)):
         for item in logdata_extracted[n].itertuples():
-            theta_est[item.送信者位置] += item.返信有無 + (1 - item.返信有無) * P_O[item.受信者, item.送信者, item.送信者位置]
+            numerator[item.送信者位置] += item.返信有無 + (1 - item.返信有無) * P_O[item.受信者, item.送信者, item.送信者位置]
             cnt_array[item.送信者位置] += 1
     
-    return theta_est / cnt_array
+    theta_est = numerator / cnt_array
+    # サンプル数が少なすぎる送信者位置については、EXCEPTIONAL_PB_VALUEで埋める
+    return np.where(cnt_array >= MIN_SAMPLES_FOR_EST, theta_est, EXCEPTIONAL_PB_VALUE)
 
 
 def update_gamma_reply(logdata_extracted: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray, sampled_relevances: np.ndarray) -> np.ndarray:

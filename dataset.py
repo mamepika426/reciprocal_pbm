@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 import torch
@@ -10,7 +12,8 @@ from consts import POW_SEND, POW_REPLY, USE_TRUE_PB
 
 # 参考: https://dreamer-uma.com/pytorch-dataset/
 class MyDataset(Dataset):
-    def __init__(self, logdata, sender_profiles, receiver_profiles, S):
+    def __init__(self, logdata: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray,
+                 S: int, theta_send_est: Optional[np.ndarray] = None, theta_reply_est: Optional[np.ndarray] = None) -> None:
         # np.emptyで初期化してappend: https://qiita.com/fist0/items/d0779ff861356dafaf95
         features = np.empty((0, S, 200))
         match = np.empty((0, S))
@@ -41,14 +44,26 @@ class MyDataset(Dataset):
             true_reciprocal_score_sheet = np.expand_dims(true_reciprocal_score_sheet, axis=0)
             true_reciprocal_score = np.append(true_reciprocal_score, true_reciprocal_score_sheet, axis=0)
 
-            if USE_TRUE_PB:
+            # ポジションバイアスの推定値が与えられていない場合は真のポジションバイアスで補正
+            if theta_send_est is None and theta_reply_est is None:
                 # theta_send作成
-                theta_send_sheet = ( (0.9 / logdata[n]['受信者位置']) ** POW_SEND ).values
+                theta_send_sheet = ((0.9 / logdata[n]['受信者位置']) ** POW_SEND).values
                 theta_send_sheet = np.expand_dims(theta_send_sheet, axis=0)
                 theta_send = np.append(theta_send, theta_send_sheet, axis=0)
 
                 # theta_reply作成
                 theta_reply_sheet = ((0.9 / logdata[n]['送信者位置']) ** POW_REPLY).values
+                theta_reply_sheet = np.expand_dims(theta_reply_sheet, axis=0)
+                theta_reply = np.append(theta_reply, theta_reply_sheet, axis=0)
+
+            else:
+                # theta_send作成
+                theta_send_sheet = theta_send_est[logdata[n]['受信者位置']]
+                theta_send_sheet = np.expand_dims(theta_send_sheet, axis=0)
+                theta_send = np.append(theta_send, theta_send_sheet, axis=0)
+
+                # theta_reply作成
+                theta_reply_sheet = theta_reply_est[logdata[n]['送信者位置']]
                 theta_reply_sheet = np.expand_dims(theta_reply_sheet, axis=0)
                 theta_reply = np.append(theta_reply, theta_reply_sheet, axis=0)
 

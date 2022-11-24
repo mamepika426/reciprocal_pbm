@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 
 from torch.optim import Adam
 
-from consts import (DATA_DIR, FIG_DIR, NUM_SHEETS, NUM_TRAIN_SHEETS, S,
-                    TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS)
+from consts import (DATA_DIR, FIG_DIR, NUM_SHEETS, NUM_TRAIN_SHEETS, S, USE_TRUE_PB
+                    , TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS)
 from model import MLPScoreFunc
 from train import train_ranker
 from dataset import MyDataset
+from estimate_pb.estimate_pb import estimate_pb
 
 # 生成されたデータをロード
 logdata = []
@@ -23,10 +24,17 @@ for n in range(NUM_SHEETS):
 male_profiles = np.load(os.path.join(DATA_DIR, 'male_profiles.npy'))
 female_profiles = np.load(os.path.join(DATA_DIR, 'female_profiles.npy'))
 
-# 後で絶対シャッフル
-train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S)
-test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S)
+# 真のポジションバイアスが使える場合
+if USE_TRUE_PB:
+    # 後で絶対シャッフル
+    train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S)
+    test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S)
 
+# 真のポジションバイアスが使えない場合はregression_emにより推定(渡すデータはtrainと同じもの)
+if not USE_TRUE_PB:
+    theta_send_est, theta_reply_est = estimate_pb(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles)
+    train = MyDataset(logdata[:NUM_TRAIN_SHEETS], male_profiles, female_profiles, S, theta_send_est, theta_reply_est)
+    test = MyDataset(logdata[NUM_TRAIN_SHEETS:], male_profiles, female_profiles, S)
 
 torch.manual_seed(12345)
 score_fn = MLPScoreFunc(

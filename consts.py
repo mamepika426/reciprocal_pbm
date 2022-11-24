@@ -18,12 +18,16 @@ NUM_SHEETS = 1000
 
 NUM_TRAIN_SHEETS = 800 # トレーニングに回すシート枚数
 
-"""
-ポジションバイアスを推定する際に, サンプル数が少なすぎる(< MIN_SAMPLES_FOR_EST)
-'送信者位置'に対しては ポジションバイアス = EXCEPTIONAL_PB_VALUE で対応する
-"""
+# ポジションバイアスを推定する際に, サンプル数が少なすぎる(< MIN_SAMPLES_FOR_EST)
+# '送信者位置'に対しては ポジションバイアス = EXCEPTIONAL_PB_VALUE で対応する
 MIN_SAMPLES_FOR_EST = 30
 EXCEPTIONAL_PB_VALUE = 0.1
+
+# ポジションバイアス推定のためのEMアルゴリズムのループ数、閾値設定
+MAX_ITER_SEND = 5
+MAX_ITER_REPLY = 10
+THRESHOLD_SEND = 1
+THRESHOLD_REPLY = 1
 
 # ポジションバイアス強度設定
 POW_SEND = 1
@@ -36,5 +40,5 @@ HIDDEN_LAYER_SIZES = (10, 10)
 LEARNING_RATE = 0.0001
 N_EPOCHS = 100
 
-# 補正値に真の値を用いるか推定されたバイアスを用いるかどうか
-USE_TRUE_PB = True
+# 補正値に真の値を用いるか推定されたバイアスを用いるか
+USE_TRUE_PB = False

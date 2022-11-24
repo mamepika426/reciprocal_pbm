@@ -338,10 +338,9 @@ def regressionEM_reply(logdata: list, sender_profiles: np.ndarray, receiver_prof
     # 送信者位置の最大値を取得
     max_sender_position = 1
     for n in range(len(logdata)):
-        for item in logdata[n].itertuples():
-            if item.送信有無 == 1 and max_sender_position < item.送信者位置:
-                max_sender_position = item.送信者位置
-                
+        if max_sender_position < logdata[n]['送信者位置'].max():
+            max_sender_position = logdata[n]['送信者位置'].max()
+
     # 送信有無 == 1のログだけ抜き出す
     logdata_extracted = []
     for n in range(len(logdata)):

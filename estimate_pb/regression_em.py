@@ -276,12 +276,12 @@ def update_theta_reply(logdata_extracted: list, P_O: np.ndarray, max_sender_posi
     numerator = np.zeros(max_sender_position+1)
     # `送信者位置`カラムの値ごとにログデータ中に現れた行数をカウント
     cnt_array = np.zeros(max_sender_position+1)
-    cnt_array[0] = 1 # 0割り防止
     for n in range(len(logdata_extracted)):
         for item in logdata_extracted[n].itertuples():
             numerator[item.送信者位置] += item.返信有無 + (1 - item.返信有無) * P_O[item.受信者, item.送信者, item.送信者位置]
             cnt_array[item.送信者位置] += 1
     
+    cnt_array = np.where(cnt_array==0, 1, cnt_array) # 0割り防止
     theta_est = numerator / cnt_array
     # サンプル数が少なすぎる送信者位置については、EXCEPTIONAL_PB_VALUEで埋める
     return np.where(cnt_array >= MIN_SAMPLES_FOR_EST, theta_est, EXCEPTIONAL_PB_VALUE)

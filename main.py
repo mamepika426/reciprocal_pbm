@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from torch.optim import Adam
 
-from consts import (DATA_DIR, FIG_DIR, NUM_SHEETS, NUM_TRAIN_SHEETS, S, USE_TRUE_PB
+from consts import (DATA_DIR, FIG_DIR, NUM_SHEETS, NUM_TRAIN_SHEETS, S, USE_TRUE_PB, POW_SEND, POW_REPLY
                     , TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS)
 from model import MLPScoreFunc
 from train import train_ranker
@@ -94,7 +94,7 @@ plt.plot(range(N_EPOCHS), ndcg_score_list_naive, label="Naive", linewidth=3, lin
 plt.plot(range(N_EPOCHS), ndcg_score_list_ips, label="IPS", linewidth=3, linestyle="dashdot")
 plt.plot(range(N_EPOCHS), ndcg_score_list_ideal, label="Ideal", linewidth=3)
 
-plt.title("Test nDCG@10 Curve With Different Estimators (pow_true=1)", fontdict=dict(size=15))
+plt.title("Test nDCG@10 Curve With Different Estimators (pow_true=({}, {}))".format(POW_SEND, POW_REPLY), fontdict=dict(size=15))
 plt.xlabel("Number of Epochs", fontdict=dict(size=20))
 plt.ylabel("Test nDCG@10", fontdict=dict(size=20))
 plt.tight_layout()

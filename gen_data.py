@@ -9,6 +9,21 @@ from scipy.stats import bernoulli
 
 from consts import DATA_DIR, FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS, POW_SEND, POW_REPLY
 
+class My_Raw_data:
+    """
+    ultra/utils/data_utils.Raw_dataに対応するもの
+    """
+    def __init__(self):
+        """
+        qids, initial_list, labels, featuresを作成
+        """
+        self.feature_size = 200
+        self.rank_list_size = S
+        self.qids = [str(n+1) for n in range(NUM_SHEETS)]
+        self.initial_list = [[10*n + k for k in range(10)] for n in range(NUM_SHEETS)]
+        self.labels = []
+        self.features = []
+
 
 def gen_users(num_users: int, num_clusters: int) -> Tuple[np.ndarray, np.ndarray, list]:
     """
@@ -103,29 +118,32 @@ def gen_a_sheet(sender: int, receivers: np.ndarray, messaged_by: list
     # 完成したシートを確認して、メッセージ送信があればmessaged_byを更新しておく
     for item in sheet[sheet['送信有無']==1].itertuples():
         messaged_by[item.受信者].append(item.送信者)
-        
+
     return sheet, messaged_by
 
 
-def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_search: int
-                , rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray,) -> list:
+def gen_logdata(sender_profiles: np.ndarray, receiver_profiles: np.ndarray, preferences: np.ndarray
+                , S: int, num_search: int, rel_sender2receiver: np.ndarray, rel_receiver2sender: np.ndarray
+                , train_set: My_Raw_data) -> list:
     """
     ログデータを作成する関数
-    @param profiles: メッセージ送信先となる性別すべてのユーザのprofile [(ユーザ数, 100)]
+    @param sender_profiles: メッセージ送信源となる性別すべてのユーザのprofile [(ユーザ数, 100)]
+    @param receiver_profiles: メッセージ送信先となる性別すべてのユーザのprofile [(ユーザ数, 100)]
     @param preferences: メッセージ送信源となる性別すべてのユーザのpreference [(ユーザ数, 100)]
     @param S: slate size
     @param num_search: 検索総回数
     @param rel_sender2receiver: メッセージ送信源の性別から送信先の性別への嗜好度合いが格納された配列
     @param rel_receiver2sender: メッセージ送信先の性別から送信源の性別への嗜好度合いが格納された配列
+    @param train_set: ultraに与えるRaw_data.
     @return logdata: 1検索についての情報をdfにしたものをnum_search枚もつリスト
     """
     # 送信者ごとに、まだメッセージを送っていない相手を格納するリスト
     candidates = []
     for sender in range(len(preferences)):
-        candidates.append(np.arange(len(profiles)))
+        candidates.append(np.arange(len(receiver_profiles)))
     
     # 受信者ごとに送信源のユーザを格納するリスト
-    messaged_by = [[] for i in range(len(profiles))]
+    messaged_by = [[] for i in range(len(receiver_profiles))]
 
     # 各検索での送信者、受信者を保存しておく
     senders_list = []
@@ -146,6 +164,9 @@ def gen_logdata(profiles: np.ndarray, preferences: np.ndarray, S: int, num_searc
         sheet, messaged_by = gen_a_sheet(senders_list[n], receivers_list[n], messaged_by
                                          , rel_sender2receiver, rel_receiver2sender)
         logdata.append(sheet)
+        train_set.labels.append(list(sheet['gamma_sender']))
+        for receiver in receivers_list[n]:
+            train_set.features.append(list(sender_profiles[senders_list[n]]) + list(receiver_profiles[receiver]))
 
     return logdata
 
@@ -158,13 +179,18 @@ if __name__ == "__main__":
     if not os.path.exists(FIG_DIR):
         os.mkdir(FIG_DIR)
 
+    # ultraに与えるRaw_data
+    train_set = My_Raw_data()
+    # print("qids: ", train_set.qids)
+    # print("initial_list: ", train_set.initial_list)
+
     # profile, preference, 嗜好度合い, ログデータ作成
     male_profiles, male_preferences, male_cluster_list = gen_users(NUM_MALES, NUM_CLUSTERS)
     female_profiles, female_preferences, female_cluster_list = gen_users(NUM_FEMALES, NUM_CLUSTERS)
     rel_male2female = gen_relevances(female_profiles, male_preferences)
     rel_female2male = gen_relevances(male_profiles, female_preferences)
 
-    logdata = gen_logdata(female_profiles, male_preferences, S, NUM_SHEETS, rel_male2female, rel_female2male)
+    logdata = gen_logdata(male_profiles, female_profiles, male_preferences, S, NUM_SHEETS, rel_male2female, rel_female2male, train_set)
 
     # データ保存
     for n in range(len(logdata)):
@@ -173,3 +199,6 @@ if __name__ == "__main__":
 
     np.save(os.path.join(DATA_DIR, 'male_profiles'), male_profiles)
     np.save(os.path.join(DATA_DIR, 'female_profiles'), female_profiles)
+
+    # print("labels: ", len(train_set.labels))
+    # print("features", len(train_set.features), len(train_set.features[0]))

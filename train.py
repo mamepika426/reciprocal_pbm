@@ -3,13 +3,13 @@ from typing import List, Optional
 from torch import nn, optim
 from torch.utils .data import DataLoader
 from tqdm import tqdm # プログレスバーの表示
-from dataset import MyDataset
 
 from consts import S
 from evaluate import evaluate_test_performance
 from loss import listwise_loss
+from dataset import BaseDataset
 
-def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: MyDataset, test: MyDataset,
+def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: BaseDataset, test: BaseDataset,
     train_batch_size: int, test_batch_size: int, n_epochs: int) -> List:
     """
     ランキングモデルを学習するための関数.
@@ -46,18 +46,18 @@ def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: M
             if estimator == "naive":
                 loss = listwise_loss(
                     scores=score_fn(batch['features']),
-                    match=batch['match']
+                    implicit_feedback=batch['implicit_feedback']
                 )
             elif estimator == "ips":
                 loss = listwise_loss(
                     scores=score_fn(batch['features']),
-                    match=batch['match'],
+                    implicit_feedback=batch['implicit_feedback'],
                     pscore=batch['pscore'],
                 )
             elif estimator == "ideal":
                 loss = listwise_loss(
                     scores=score_fn(batch['features']),
-                    match=batch['true_reciprocal_score']
+                    implicit_feedback=batch['true_score']
                 )
             optimizer.zero_grad()
             loss.backward()

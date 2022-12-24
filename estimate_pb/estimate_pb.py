@@ -7,7 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sys.path.append('../') # constsをインポートするために必要
-from consts import DATA_DIR, FIG_DIR, NUM_SHEETS, S, POW_SEND, POW_REPLY, MAX_ITER_SEND, MAX_ITER_REPLY, THRESHOLD_SEND, THRESHOLD_REPLY
+from consts import (DATA_DIR, DATA_DIR_M2F, DATA_DIR_F2M, FIG_DIR
+                    , S, POW_SEND, POW_REPLY, MAX_ITER_SEND, MAX_ITER_REPLY, THRESHOLD_SEND, THRESHOLD_REPLY)
 from estimate_pb.regression_em import regressionEM_send, regressionEM_reply
 
 

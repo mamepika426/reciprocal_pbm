@@ -7,7 +7,8 @@ import pandas as pd
 from typing import List, Tuple
 from scipy.stats import bernoulli
 
-from consts import DATA_DIR, FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS, S, NUM_SHEETS, POW_SEND, POW_REPLY
+from consts import (DATA_DIR, DATA_DIR_M2F, DATA_DIR_F2M, DATA_DIR,FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS
+                   , S, NUM_SHEETS_M2F, NUM_SHEETS_F2M, POW_SEND, POW_REPLY)
 
 
 def gen_users(num_users: int, num_clusters: int) -> Tuple[np.ndarray, np.ndarray, list]:
@@ -155,6 +156,12 @@ if __name__ == "__main__":
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
 
+    if not os.path.exists(DATA_DIR_M2F):
+        os.mkdir(DATA_DIR_M2F)
+
+    if not os.path.exists(DATA_DIR_F2M):
+        os.mkdir(DATA_DIR_F2M)
+
     if not os.path.exists(FIG_DIR):
         os.mkdir(FIG_DIR)
 
@@ -164,12 +171,17 @@ if __name__ == "__main__":
     rel_male2female = gen_relevances(female_profiles, male_preferences)
     rel_female2male = gen_relevances(male_profiles, female_preferences)
 
-    logdata = gen_logdata(female_profiles, male_preferences, S, NUM_SHEETS, rel_male2female, rel_female2male)
+    logdata_m2f = gen_logdata(female_profiles, male_preferences, S, NUM_SHEETS_M2F, rel_male2female, rel_female2male)
+    logdata_f2m = gen_logdata(male_profiles, female_preferences, S, NUM_SHEETS_F2M, rel_female2male, rel_male2female)
 
     # データ保存
-    for n in range(len(logdata)):
-        csv_file_path = os.path.join(DATA_DIR, 'sheet{0}.csv'.format(n))
-        logdata[n].to_csv(csv_file_path, index=False)
+    for n in range(len(logdata_m2f)):
+        csv_file_path = os.path.join(DATA_DIR_M2F, 'sheet{0}.csv'.format(n))
+        logdata_m2f[n].to_csv(csv_file_path, index=False)
+
+    for n in range(len(logdata_f2m)):
+        csv_file_path = os.path.join(DATA_DIR_F2M, 'sheet{0}.csv'.format(n))
+        logdata_f2m[n].to_csv(csv_file_path, index=False)
 
     np.save(os.path.join(DATA_DIR, 'male_profiles'), male_profiles)
     np.save(os.path.join(DATA_DIR, 'female_profiles'), female_profiles)

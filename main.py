@@ -11,6 +11,7 @@ from train import train_3rankers
 from dataset import DatasetBothSide, DatasetOneSide
 from estimate_pb.estimate_pb import estimate_pb
 from gen_data import gen_a_sheet
+from evaluate import online_performance_per_sender
 
 # 生成されたデータをロード
 logdata_m2f = []
@@ -105,115 +106,89 @@ for n in range(NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F):
     sheet = logdata_m2f[NUM_TRAIN_SHEETS_M2F + n]
     sender = sheet['送信者'][0]
 
-    # score_fn_naive_bothの性能評価
-    # np.tileで同じ配列を縦に繰り返し: https://note.nkmk.me/python-numpy-tile/
-    sender_repeat = np.tile(male_profiles[sender], (len(candidates[sender]), 1))
-    feature_m2f = np.hstack((sender_repeat, female_profiles[candidates[sender]]))
-    score_list = score_fn_naive_both(torch.FloatTensor(feature_m2f)).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_naive_both += sum(sheet['返信有無'])
+    # score_fn_bothの性能評価
+    sum_naive_both += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'both',
+                                                    score_fn_naive_both)
+    sum_ips_both += online_performance_per_sender(sender,
+                                                  male_profiles,
+                                                  female_profiles,
+                                                  rel_male2female,
+                                                  rel_female2male,
+                                                  candidates,
+                                                  'both',
+                                                  score_fn_ips_both)
+    sum_ideal_both += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'both',
+                                                    score_fn_ideal_both)
 
-    # =========================
-    # score_fn_ips_bothの性能評価
-    score_list = score_fn_ips_both(torch.FloatTensor(feature_m2f)).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ips_both += sum(sheet['返信有無'])
+    # score_fn_oneside(product)の性能評価
+    sum_naive_product += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'product',
+                                                    score_fn_naive_m2f,
+                                                    score_fn_naive_f2m)
+    sum_ips_product += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'product',
+                                                    score_fn_ips_m2f,
+                                                    score_fn_ips_f2m)
+    sum_ideal_product += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'product',
+                                                    score_fn_ideal_m2f,
+                                                    score_fn_ideal_f2m)
 
-    # score_fn_idealの性能評価
-    score_list = score_fn_ideal_both(torch.FloatTensor(feature_m2f)).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ideal_both += sum(sheet['返信有無'])
-
-    # =======================================
-    # score_fn_naive_oneside(product)の性能評価
-    # np.tileで同じ配列を縦に繰り返し: https://note.nkmk.me/python-numpy-tile/
-    sender_repeat = np.tile(male_profiles[sender], (len(candidates[sender]), 1))
-    feature_m2f = np.hstack((sender_repeat, female_profiles[candidates[sender]]))
-    feature_f2m = np.hstack((female_profiles[candidates[sender]], sender_repeat))
-    score_m2f = score_fn_naive_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_naive_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_list = (score_m2f * score_f2m).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_naive_product += sum(sheet['返信有無'])
-
-    # score_fn_ips_oneside(product)の性能評価
-    score_m2f = score_fn_ips_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_ips_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_list = (score_m2f * score_f2m).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ips_product += sum(sheet['返信有無'])
-
-    # score_fn_ips_oneside(product)の性能評価
-    score_m2f = score_fn_ideal_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_ideal_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_list = (score_m2f * score_f2m).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ideal_product += sum(sheet['返信有無'])
-
-    # =======================================
-    # score_fn_naive_oneside(harmonic)の性能評価
-    # np.tileで同じ配列を縦に繰り返し: https://note.nkmk.me/python-numpy-tile/
-    score_m2f = score_fn_naive_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_naive_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_sum = score_m2f + score_f2m
-    score_product = score_m2f * score_f2m
-    score_list = (2*score_product / score_sum).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_naive_harmonic += sum(sheet['返信有無'])
-
-    # score_fn_ips_oneside(product)の性能評価
-    score_m2f = score_fn_ips_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_ips_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_sum = score_m2f + score_f2m
-    score_product = score_m2f * score_f2m
-    score_list = (2*score_product / score_sum).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ips_harmonic += sum(sheet['返信有無'])
-
-    # score_fn_ips_oneside(product)の性能評価
-    score_m2f = score_fn_ideal_m2f(torch.FloatTensor(feature_m2f)).detach().numpy()
-    score_f2m = score_fn_ideal_f2m(torch.FloatTensor(feature_f2m)).detach().numpy()
-    score_sum = score_m2f + score_f2m
-    score_product = score_m2f * score_f2m
-    score_list = (2*score_product / score_sum).tolist()
-    candidates_with_scores = list(zip(candidates[sender], score_list))
-    output = sorted(candidates_with_scores, key=lambda x:x[1], reverse=True)
-    receivers = [i[0] for i in output[:10]]
-    # スコアリング関数通りに表示した場合のクリックログ
-    sheet, _ = gen_a_sheet(sender, np.array(receivers), [[] for female in range(len(female_profiles))], rel_male2female, rel_female2male)
-    sum_ideal_harmonic += sum(sheet['返信有無'])
+    # score_fn_oneside(harmonic)の性能評価
+    sum_naive_harmonic += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'harmonic',
+                                                    score_fn_naive_m2f,
+                                                    score_fn_naive_f2m)
+    sum_ips_harmonic += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'harmonic',
+                                                    score_fn_ips_m2f,
+                                                    score_fn_ips_f2m)
+    sum_ideal_harmonic += online_performance_per_sender(sender,
+                                                    male_profiles,
+                                                    female_profiles,
+                                                    rel_male2female,
+                                                    rel_female2male,
+                                                    candidates,
+                                                    'harmonic',
+                                                    score_fn_ideal_m2f,
+                                                    score_fn_ideal_f2m)
 
 # 結果出力
 print("naive_both: ", sum_naive_both)
@@ -225,3 +200,14 @@ print("ideal_product: ", sum_ideal_product)
 print("naive_harmonic: ", sum_naive_harmonic)
 print("ips_harmonic: ", sum_ips_harmonic)
 print("ideal_harmonic: ", sum_ideal_harmonic)
+
+# NUM_RECOMMEND = (NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F) * S
+# print("naive_bothのマッチ成立数、割合: ", sum_naive_both, sum_naive_both / NUM_RECOMMEND)
+# print("ips_bothのマッチ成立数、割合: ", sum_ips_both, sum_ips_both / NUM_RECOMMEND)
+# print("ideal_bothのマッチ成立数、割合: ", sum_ideal_both, sum_ideal_both / NUM_RECOMMEND)
+# print("naive_productのマッチ成立数、割合: ", sum_naive_product, sum_naive_product / NUM_RECOMMEND)
+# print("ips_productのマッチ成立数、割合: ", sum_ips_product, sum_ips_product / NUM_RECOMMEND)
+# print("ideal_productのマッチ成立数、割合: ", sum_ideal_product, sum_ideal_product / NUM_RECOMMEND)
+# print("naive_harmonicのマッチ成立数、割合: ", sum_naive_harmonic, sum_naive_harmonic / NUM_RECOMMEND)
+# print("ips_harmonicのマッチ成立数、割合: ", sum_ips_harmonic, sum_ips_harmonic / NUM_RECOMMEND)
+# print("ideal_harmonicのマッチ成立数、割合: ", sum_ideal_harmonic, sum_ideal_harmonic / NUM_RECOMMEND)

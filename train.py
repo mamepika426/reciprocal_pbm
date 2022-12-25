@@ -1,10 +1,13 @@
 from typing import List, Optional
 
+import torch
 from torch import nn, optim
-from torch.utils .data import DataLoader
+from torch.optim import Adam
+from torch.utils.data import DataLoader
 from tqdm import tqdm # プログレスバーの表示
 
-from consts import S
+from model import MLPScoreFunc
+from consts import S, TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEARNING_RATE, N_EPOCHS
 from evaluate import evaluate_test_performance
 from loss import listwise_loss
 from dataset import BaseDataset
@@ -41,7 +44,6 @@ def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: B
         )
         # トレーニングモード
         score_fn.train()
-        cnt = 0
         for batch in loader:
             if estimator == "naive":
                 loss = listwise_loss(
@@ -67,3 +69,60 @@ def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: B
         ndcg_score_list.append(ndcg_score)
 
     return ndcg_score_list
+
+
+def train_3rankers(train: BaseDataset, test: BaseDataset) -> dict:
+    """
+    naive, ips, idealの3パターンの学習を行い、学習後のスコアリングモデルと学習曲線を持つdictを返す
+    @param train: トレーニングデータ
+    @param test: テストデータ
+    @return 学習後のスコアリングモデルと学習曲線を持つdict
+    """
+    torch.manual_seed(12345)
+
+    score_fn_naive = MLPScoreFunc(input_size=200, hidden_layer_sizes=HIDDEN_LAYER_SIZES)
+    optimizer = Adam(score_fn_naive.parameters(), lr=LEARNING_RATE)
+    ndcg_score_list_naive = train_ranker(
+        score_fn=score_fn_naive,
+        optimizer=optimizer,
+        estimator="naive",
+        train=train,
+        test=test,
+        train_batch_size=TRAIN_BATCH_SIZE,
+        test_batch_size=TEST_BATCH_SIZE,
+        n_epochs=N_EPOCHS
+    )
+
+    score_fn_ips = MLPScoreFunc(input_size=200, hidden_layer_sizes=HIDDEN_LAYER_SIZES)
+    optimizer = Adam(score_fn_ips.parameters(), lr=LEARNING_RATE)
+    ndcg_score_list_ips = train_ranker(
+        score_fn=score_fn_ips,
+        optimizer=optimizer,
+        estimator="ips",
+        train=train,
+        test=test,
+        train_batch_size=TRAIN_BATCH_SIZE,
+        test_batch_size=TEST_BATCH_SIZE,
+        n_epochs=N_EPOCHS,
+    )
+
+    score_fn_ideal = MLPScoreFunc(input_size=200, hidden_layer_sizes=HIDDEN_LAYER_SIZES)
+    optimizer = Adam(score_fn_ideal.parameters(), lr=LEARNING_RATE)
+    ndcg_score_list_ideal = train_ranker(
+        score_fn=score_fn_ideal,
+        optimizer=optimizer,
+        estimator="ideal",
+        train=train,
+        test=test,
+        train_batch_size=TRAIN_BATCH_SIZE,
+        test_batch_size=TEST_BATCH_SIZE,
+        n_epochs=N_EPOCHS,
+    )
+
+    results_dict = {'score_fn_naive': score_fn_naive,
+                    'ndcg_score_list_naive': ndcg_score_list_naive,
+                    'score_fn_ips': score_fn_ips,
+                    'ndcg_score_list_ips': ndcg_score_list_ips,
+                    'score_fn_ideal': score_fn_ideal,
+                    'ndcg_score_list_ideal': ndcg_score_list_ideal}
+    return results_dict

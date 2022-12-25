@@ -185,3 +185,5 @@ if __name__ == "__main__":
 
     np.save(os.path.join(DATA_DIR, 'male_profiles'), male_profiles)
     np.save(os.path.join(DATA_DIR, 'female_profiles'), female_profiles)
+    np.save(os.path.join(DATA_DIR, 'rel_male2female'), rel_male2female)
+    np.save(os.path.join(DATA_DIR, 'rel_female2male'), rel_female2male)

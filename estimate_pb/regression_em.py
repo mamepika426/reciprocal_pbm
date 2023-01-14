@@ -112,25 +112,15 @@ def update_theta(logdata: list, P_O: np.ndarray, S: int) -> np.ndarray:
     return theta_est / len(logdata)
 
 
-def update_gamma(logdata: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray, sampled_relevances: np.ndarray) -> np.ndarray:
+def update_gamma(features: np.ndarray, sender_profiles: np.ndarray, receiver_profiles: np.ndarray, sampled_relevances: np.ndarray) -> np.ndarray:
     """
     M stepでgammaのパラメータを更新
-    @param logdata: 送信、返信ログ
+    @param features: (送信者, 受信者)ペアの特徴量 [(ログデータ内の行数, 200)]
     @param sender_profiles: メッセージ送信先である性別すべてのユーザのprofile [(ユーザ数, 100)]
     @param receiver_profiles: メッセージ送信先となる性別すべてのユーザのprofile [(ユーザ数, 100)]
     @param sampled_relevances: サンプリングされた嗜好度合い
     @return gamma_est: 更新後の推定された嗜好度合い [(メッセージ送信側の性別のユーザ数, メッセージ受信側の性別のユーザ数)]
     """
-    # (送信者, 受信者)ペアの特徴量作成
-    features = np.empty((0, 200), float)
-    for n in range(len(logdata)):
-        # features作成
-        for item in logdata[n].itertuples():
-            features_pair =  np.hstack( (sender_profiles[item.送信者], receiver_profiles[item.受信者]) )
-            # 次元を追加してappend: https://www.delftstack.com/ja/howto/numpy/python-numpy-add-dimension/
-            features_pair = np.expand_dims(features_pair, axis=0)
-            features = np.append(features, features_pair, axis=0)
-    
     # GBDT学習
     gbdt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.2, max_depth=3, random_state=0)
     gbdt.fit(features, sampled_relevances)
@@ -164,6 +154,20 @@ def regressionEM_send(logdata: list, sender_profiles: np.ndarray, receiver_profi
     theta_est = np.ones(S+1) / 2
     gamma_est = np.ones([len(sender_profiles), len(receiver_profiles)]) / 2
 
+    # 特徴量の長さ
+    feature_size = len(sender_profiles[0]) + len(receiver_profiles[0])
+    # (送信者, 受信者)ペアの特徴量作成
+    logdata_rows = [len(logdata[n]) for n in range(len(logdata))]  # 各シートの行数を要素とするリスト
+    features = np.empty((sum(logdata_rows), feature_size), float)
+
+    pointer_start = 0  # featureにfeatures_per_sheetをキャストする開始行
+    for n in range(len(logdata)):
+        sender_repeat = np.tile(sender_profiles[logdata[n]['送信者'][0]], (len(logdata[n]), 1))
+        features_per_sheet = np.c_[sender_repeat, receiver_profiles[logdata[n]['受信者']]]
+        pointer_end = pointer_start + logdata_rows[n]  # featureにfeatures_per_sheetをキャストする最後の行
+        features[pointer_start:pointer_end, :] = features_per_sheet
+        pointer_start = pointer_end
+
     # 対数尤度を計算
     log_likelihood = calculate_log_likelihood(logdata, theta_est, gamma_est)
 
@@ -176,8 +180,8 @@ def regressionEM_send(logdata: list, sender_profiles: np.ndarray, receiver_profi
         sampled_relevances = sampling_relevances(logdata, P_R, S)
         # M step(update theta and gamma)
         theta_est = update_theta(logdata, P_O, S)
-        print(theta_est)
-        gamma_est = update_gamma(logdata, sender_profiles, receiver_profiles, sampled_relevances)
+        print(theta_est[1:])
+        gamma_est = update_gamma(features, sender_profiles, receiver_profiles, sampled_relevances)
         
         # 対数尤度を計算
         new_log_likelihood = calculate_log_likelihood(logdata, theta_est, gamma_est)
@@ -287,25 +291,15 @@ def update_theta_reply(logdata_extracted: list, P_O: np.ndarray, max_sender_posi
     return np.where(cnt_array >= MIN_SAMPLES_FOR_EST, theta_est, EXCEPTIONAL_PB_VALUE)
 
 
-def update_gamma_reply(logdata_extracted: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray, sampled_relevances: np.ndarray) -> np.ndarray:
+def update_gamma_reply(features: np.ndarray, sender_profiles: np.ndarray, receiver_profiles: np.ndarray, sampled_relevances: np.ndarray) -> np.ndarray:
     """
     M stepでgammaのパラメータを更新
-    @param ogdata_extracted: `送信有無==1`のものだけ抽出した送信、返信ログ
+    @param features: (受信者, 送信者)ペアの特徴量 [(ログデータ内の行数, 200)]
     @param sender_profiles: メッセージ送信先である性別すべてのユーザのprofile [(ユーザ数, 100)]
     @param receiver_profiles: メッセージ送信先となる性別すべてのユーザのprofile [(ユーザ数, 100)]
     @param sampled_relevances: サンプリングされた嗜好度合い
     @return gamma_est: 更新後の推定された嗜好度合い [(メッセージ送信側の性別のユーザ数, メッセージ受信側の性別のユーザ数)]
     """
-    # (送信者, 受信者)ペアの特徴量作成
-    features = np.empty((0, 200), float)
-    for n in range(len(logdata_extracted)):
-        # features作成
-        for item in logdata_extracted[n].itertuples():
-            features_pair =  np.hstack( (receiver_profiles[item.受信者], sender_profiles[item.送信者]) )
-            # 次元を追加してappend: https://www.delftstack.com/ja/howto/numpy/python-numpy-add-dimension/
-            features_pair = np.expand_dims(features_pair, axis=0)
-            features = np.append(features, features_pair, axis=0)
-    
     # GBDT学習
     gbdt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.2, max_depth=3, random_state=0)
     gbdt.fit(features, sampled_relevances)
@@ -346,6 +340,21 @@ def regressionEM_reply(logdata: list, sender_profiles: np.ndarray, receiver_prof
     for n in range(len(logdata)):
         logdata_extracted.append(logdata[n][logdata[n]['送信有無']==1])
 
+    # 特徴量の長さ
+    feature_size = len(receiver_profiles[0]) + len(sender_profiles[0])
+    # (受信者, 送信者)ペアの特徴量作成
+    logdata_extracted_rows = [len(logdata_extracted[n]) for n in range(len(logdata_extracted))]  # 各シートの行数を要素とするリスト
+    features = np.empty((sum(logdata_extracted_rows), feature_size), float)
+
+    pointer_start = 0 # featureにfeatures_per_sheetをキャストする開始行
+    for n in range(len(logdata_extracted)):
+        if len(logdata_extracted[n] > 0):
+            sender_repeat = np.tile(sender_profiles[logdata[n]['送信者'][0]], (len(logdata_extracted[n]), 1)) # logdata_extractedにすると[0]使えない
+            features_per_sheet = np.c_[receiver_profiles[logdata_extracted[n]['受信者']], sender_repeat]
+            pointer_end = pointer_start + logdata_extracted_rows[n]
+            features[pointer_start:pointer_end, :] = features_per_sheet
+            pointer_start = pointer_end
+
     # 各パラメータを0.5で初期化
     theta_est = np.ones(max_sender_position+1) / 2
     gamma_est = np.ones([len(receiver_profiles), len(sender_profiles)]) / 2
@@ -362,8 +371,8 @@ def regressionEM_reply(logdata: list, sender_profiles: np.ndarray, receiver_prof
         sampled_relevances = sampling_relevances_reply(logdata_extracted, P_R, max_sender_position)
         # M step(update theta and gamma)
         theta_est = update_theta_reply(logdata_extracted, P_O, max_sender_position)
-        gamma_est = update_gamma_reply(logdata_extracted, sender_profiles, receiver_profiles, sampled_relevances)
-        print(theta_est)
+        gamma_est = update_gamma_reply(features, sender_profiles, receiver_profiles, sampled_relevances)
+        print(theta_est[1:])
         # 対数尤度を計算
         new_log_likelihood = calculate_log_likelihood_reply(logdata_extracted, theta_est, gamma_est)
         log_likelihood_list.append(new_log_likelihood)

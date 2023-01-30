@@ -11,7 +11,8 @@ from train import train_3rankers
 from dataset import DatasetBothSide, DatasetOneSide
 from estimate_pb.estimate_pb import estimate_pb
 from gen_data import gen_a_sheet
-from evaluate import online_performance_per_sender
+from evaluate import (online_performance_per_sender, online_performance_per_sender_random, make_messaged, 
+                      calc_attractiveness_similarities, online_performance_per_sender_rcf)
 
 # 生成されたデータをロード
 logdata_m2f = []
@@ -91,6 +92,14 @@ for n in range(NUM_TRAIN_SHEETS_M2F):
         if item.送信有無 == 1:
             candidates[item.送信者] = np.setdiff1d(candidates[item.送信者], item.受信者)
 
+# messaged作成(baselineのため)
+messaged_m2f = make_messaged(logdata_m2f, male_profiles, female_profiles)
+messaged_f2m = make_messaged(logdata_f2m, female_profiles, male_profiles)
+
+# attractiveness_similarities計算
+attractiveness_similarities_m2f = calc_attractiveness_similarities(messaged_m2f, male_profiles)
+attractiveness_similarities_f2m = calc_attractiveness_similarities(messaged_f2m, female_profiles)
+
 # テストシート上の各送信者に対して、それぞれのスコアリング関数通りに表示するといくつのペアができるか
 sum_naive_both = 0
 sum_ips_both = 0
@@ -101,6 +110,8 @@ sum_ideal_product = 0
 sum_naive_harmonic = 0
 sum_ips_harmonic = 0
 sum_ideal_harmonic = 0
+sum_random = 0
+sum_rcf = 0
 
 for n in range(NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F):
     sheet = logdata_m2f[NUM_TRAIN_SHEETS_M2F + n]
@@ -190,6 +201,28 @@ for n in range(NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F):
                                                     score_fn_ideal_m2f,
                                                     score_fn_ideal_f2m)
 
+
+    #baselineとの比較
+    sum_random += online_performance_per_sender_random(sender,
+                                                       male_profiles,
+                                                       female_profiles,
+                                                       rel_male2female,
+                                                       rel_female2male,
+                                                       candidates)
+
+    # rcf
+    sum_rcf += online_performance_per_sender_rcf(sender,
+                                                male_profiles,
+                                                female_profiles,
+                                                rel_male2female,
+                                                rel_female2male,
+                                                candidates,
+                                                messaged_m2f,
+                                                messaged_f2m,
+                                                attractiveness_similarities_m2f,
+                                                attractiveness_similarities_f2m
+                                                )
+
 # 結果出力
 print("naive_both: ", sum_naive_both)
 print("ips_both: ", sum_ips_both)
@@ -200,6 +233,8 @@ print("ideal_product: ", sum_ideal_product)
 print("naive_harmonic: ", sum_naive_harmonic)
 print("ips_harmonic: ", sum_ips_harmonic)
 print("ideal_harmonic: ", sum_ideal_harmonic)
+print("random: ", sum_random)
+print("rcf: ", sum_rcf)
 
 # NUM_RECOMMEND = (NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F) * S
 # print("naive_bothのマッチ成立数、割合: ", sum_naive_both, sum_naive_both / NUM_RECOMMEND)

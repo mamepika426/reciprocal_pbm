@@ -1,3 +1,4 @@
+# スコアリング関数をNNで実装する
 from dataclasses import dataclass
 from typing import Tuple
 

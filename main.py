@@ -1,3 +1,4 @@
+# 提案手法についてのメイン処理
 import os
 
 import numpy as np
@@ -224,25 +225,15 @@ for n in range(NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F):
                                                 )
 
 # 結果出力
-print("naive_both: ", sum_naive_both)
-print("ips_both: ", sum_ips_both)
-print("ideal_both: ", sum_ideal_both)
-print("naive_product: ", sum_naive_product)
-print("ips_product: ", sum_ips_product)
-print("ideal_product: ", sum_ideal_product)
-print("naive_harmonic: ", sum_naive_harmonic)
-print("ips_harmonic: ", sum_ips_harmonic)
-print("ideal_harmonic: ", sum_ideal_harmonic)
-print("random: ", sum_random)
-print("rcf: ", sum_rcf)
-
-# NUM_RECOMMEND = (NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F) * S
-# print("naive_bothのマッチ成立数、割合: ", sum_naive_both, sum_naive_both / NUM_RECOMMEND)
-# print("ips_bothのマッチ成立数、割合: ", sum_ips_both, sum_ips_both / NUM_RECOMMEND)
-# print("ideal_bothのマッチ成立数、割合: ", sum_ideal_both, sum_ideal_both / NUM_RECOMMEND)
-# print("naive_productのマッチ成立数、割合: ", sum_naive_product, sum_naive_product / NUM_RECOMMEND)
-# print("ips_productのマッチ成立数、割合: ", sum_ips_product, sum_ips_product / NUM_RECOMMEND)
-# print("ideal_productのマッチ成立数、割合: ", sum_ideal_product, sum_ideal_product / NUM_RECOMMEND)
-# print("naive_harmonicのマッチ成立数、割合: ", sum_naive_harmonic, sum_naive_harmonic / NUM_RECOMMEND)
-# print("ips_harmonicのマッチ成立数、割合: ", sum_ips_harmonic, sum_ips_harmonic / NUM_RECOMMEND)
-# print("ideal_harmonicのマッチ成立数、割合: ", sum_ideal_harmonic, sum_ideal_harmonic / NUM_RECOMMEND)
+NUM_RECOMMEND = (NUM_SHEETS_M2F - NUM_TRAIN_SHEETS_M2F) * S
+print("naive_bothのマッチ成立数、割合: ", sum_naive_both, sum_naive_both / NUM_RECOMMEND)
+print("ips_bothのマッチ成立数、割合: ", sum_ips_both, sum_ips_both / NUM_RECOMMEND)
+print("ideal_bothのマッチ成立数、割合: ", sum_ideal_both, sum_ideal_both / NUM_RECOMMEND)
+print("naive_productのマッチ成立数、割合: ", sum_naive_product, sum_naive_product / NUM_RECOMMEND)
+print("ips_productのマッチ成立数、割合: ", sum_ips_product, sum_ips_product / NUM_RECOMMEND)
+print("ideal_productのマッチ成立数、割合: ", sum_ideal_product, sum_ideal_product / NUM_RECOMMEND)
+print("naive_harmonicのマッチ成立数、割合: ", sum_naive_harmonic, sum_naive_harmonic / NUM_RECOMMEND)
+print("ips_harmonicのマッチ成立数、割合: ", sum_ips_harmonic, sum_ips_harmonic / NUM_RECOMMEND)
+print("ideal_harmonicのマッチ成立数、割合: ", sum_ideal_harmonic, sum_ideal_harmonic / NUM_RECOMMEND)
+print("randomのマッチ成立数、割合: ", sum_random, sum_random / NUM_RECOMMEND)
+print("rcfのマッチ成立数、割合: ", sum_rcf, sum_rcf / NUM_RECOMMEND)

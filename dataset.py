@@ -1,3 +1,5 @@
+# データセットに関するクラスを定義
+# データセットの定義について参考にしたサイト: https://dreamer-uma.com/pytorch-dataset/
 from typing import Optional
 
 import numpy as np
@@ -9,6 +11,8 @@ from torch.utils.data import Dataset
 
 from consts import POW_SEND, POW_REPLY, USE_TRUE_PB
 
+
+# データセットの親クラス
 class BaseDataset(Dataset):
     def __init__(self, logdata: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray,
                  S: int, theta_send_est: Optional[np.ndarray] = None, theta_reply_est: Optional[np.ndarray] = None) -> None:
@@ -21,7 +25,7 @@ class BaseDataset(Dataset):
         pass
 
 
-# 参考: https://dreamer-uma.com/pytorch-dataset/
+# 両側補正(アルゴリズム1)のために使用するデータセット
 class DatasetBothSide(BaseDataset):
     def __init__(self, logdata: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray,
                  S: int, theta_send_est: Optional[np.ndarray] = None, theta_reply_est: Optional[np.ndarray] = None) -> None:
@@ -95,6 +99,7 @@ class DatasetBothSide(BaseDataset):
         return data_dict
 
 
+# 片側補正(アルゴリズム2)に使用するデータセット
 class DatasetOneSide(BaseDataset):
     def __init__(self, logdata: list, sender_profiles: np.ndarray, receiver_profiles: np.ndarray,
                  S: int, theta_send_est: Optional[np.ndarray] = None, theta_reply_est: Optional[np.ndarray] = None) -> None:

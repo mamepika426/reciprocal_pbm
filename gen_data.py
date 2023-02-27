@@ -1,3 +1,4 @@
+# ユーザ、メッセージ送信ログについてのデータを生成する関数群
 import os
 import random
 

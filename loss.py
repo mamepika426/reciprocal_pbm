@@ -1,3 +1,4 @@
+# 損失関数を定義する
 from typing import Optional
 
 from torch import ones, FloatTensor

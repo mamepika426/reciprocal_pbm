@@ -1,3 +1,4 @@
+# ランキング学習を行い、その性能を評価する関数群
 from typing import List
 
 import torch
@@ -11,6 +12,7 @@ from consts import S, TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, HIDDEN_LAYER_SIZES, LEA
 from evaluate import evaluate_test_performance
 from loss import listwise_loss
 from dataset import BaseDataset
+
 
 def train_ranker(score_fn: nn.Module, optimizer: optim, estimator: str, train: BaseDataset, test: BaseDataset,
     train_batch_size: int, test_batch_size: int, n_epochs: int) -> List:

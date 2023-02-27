@@ -1,3 +1,4 @@
+# Regression EMを実行する関数
 import sys
 
 import numpy as np

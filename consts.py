@@ -46,3 +46,7 @@ N_EPOCHS = 100
 
 # 補正値に真の値を用いるか推定されたバイアスを用いるか
 USE_TRUE_PB = True
+
+# 乱数シード
+RANDOM_SEED = 1
+NP_RANDOM_SEED = 2

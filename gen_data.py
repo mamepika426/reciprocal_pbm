@@ -9,8 +9,10 @@ from typing import List, Tuple
 from scipy.stats import bernoulli
 
 from consts import (DATA_DIR, DATA_DIR_M2F, DATA_DIR_F2M, DATA_DIR,FIG_DIR, NUM_MALES, NUM_FEMALES, NUM_CLUSTERS
-                   , S, NUM_SHEETS_M2F, NUM_SHEETS_F2M, POW_SEND, POW_REPLY)
+                   , S, NUM_SHEETS_M2F, NUM_SHEETS_F2M, POW_SEND, POW_REPLY, RANDOM_SEED, NP_RANDOM_SEED)
 
+random.seed(RANDOM_SEED)        # ランダムシード固定
+np.random.seed(NP_RANDOM_SEED)  # ランダムシード固定(numpy)
 
 def gen_users(num_users: int, num_clusters: int) -> Tuple[np.ndarray, np.ndarray, list]:
     """

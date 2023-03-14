@@ -9,9 +9,10 @@ from torch import LongTensor, nn
 from torch.utils.data import DataLoader
 from pytorchltr.evaluation.dcg import ndcg
 
-from consts import S
+from consts import S, RANDOM_SEED
 from dataset import BaseDataset
 from gen_data import gen_a_sheet
+random.seed(RANDOM_SEED)  # 乱数シード固定
 
 def evaluate_test_performance(score_fn: nn.Module, test: BaseDataset, S: int, test_batch_size: int) -> float:
     """

@@ -45,7 +45,7 @@ LEARNING_RATE = 0.0001
 N_EPOCHS = 100
 
 # 補正値に真の値を用いるか推定されたバイアスを用いるか
-USE_TRUE_PB = True
+USE_TRUE_PB = False
 
 # 乱数シード
 RANDOM_SEED = 1

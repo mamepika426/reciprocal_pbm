@@ -45,7 +45,7 @@ if USE_TRUE_PB:
 
 # 真のポジションバイアスが使えない場合はregression_emにより推定(渡すデータはtrainと同じもの)
 if not USE_TRUE_PB:
-    theta_send_est, theta_reply_est = estimate_pb(logdata_m2f[:NUM_TRAIN_SHEETS], male_profiles, female_profiles)
+    theta_send_est, theta_reply_est = estimate_pb(logdata_m2f[:NUM_TRAIN_SHEETS_M2F], male_profiles, female_profiles)
     train_both = DatasetBothSide(logdata_m2f[:NUM_TRAIN_SHEETS_M2F], male_profiles, female_profiles, S, theta_send_est, theta_reply_est)
     test_both = DatasetBothSide(logdata_m2f[NUM_TRAIN_SHEETS_M2F:], male_profiles, female_profiles, S)
     train_m2f = DatasetOneSide(logdata_m2f[:NUM_TRAIN_SHEETS_M2F], male_profiles, female_profiles, S, theta_send_est, theta_reply_est)
